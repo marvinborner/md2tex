@@ -9,6 +9,7 @@ latex = [
     "\\usepackage[utf8]{inputenc}",
     "\\usepackage{hyperref}",
     "\\usepackage{ulem}",
+    "\\usepackage{listings}",
     "\\begin{document}"
 ]
 rules = {
@@ -21,6 +22,7 @@ rules = {
     r"\~\~(.*?)\~\~": "\\sout{0}",  # Strikethrough
     r"\* (.*)": "ul",  # Unordered list
     r"[0-9]+\. (.*)": "ol",  # Ordered list
+    r"```(.*)": "code"  # Coding
 }
 
 for i, line in enumerate(data):
@@ -29,6 +31,7 @@ for i, line in enumerate(data):
     for rule in rules:
         match = re.match(rule, new_line)
         if match:
+            print(match.groups())
             matched = True
             new_line = rules[rule]
             for j, matched_group in enumerate(match.groups()):
@@ -42,6 +45,14 @@ for i, line in enumerate(data):
                             new_line += " \\end{" + list_type + "}"
                     else:
                         new_line = "\\begin{" + list_type + "} \\item " + matched_group
+                elif rules[rule] == "code":
+                    found = i
+                    while True:
+                        found = found + 1
+                        if "```" in data[found]:
+                            break
+                    new_line = "\\begin{lstlisting}[language=" + matched_group + "]\n" + "\n".join(data[i + 1:found]) + "\\end{lstlisting}"
+                    data[i:found + 1] = ""
     if line[-2:] == "  ":
         new_line += "\\\\"
     latex.append(new_line)
