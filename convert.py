@@ -3,7 +3,7 @@ import re
 from sys import argv
 
 path = argv[1]
-data = [line.rstrip("\n") for line in open(path)]
+data = list(filter(None, [line.rstrip("\n") for line in open(path)]))
 latex = [
     "\\documentclass[11pt]{article}",
     "\\usepackage[utf8]{inputenc}",
@@ -20,6 +20,7 @@ rules = {
     r"(\*|_)(.*?)\1": "\\emph{1}",  # Emphasize/italics
     r"\~\~(.*?)\~\~": "\\sout{0}",  # Strikethrough
     r"\* (.*)": "ul",  # Unordered list
+    r"[0-9]+\. (.*)": "ol",  # Ordered list
 }
 
 for i, line in enumerate(data):
@@ -33,13 +34,14 @@ for i, line in enumerate(data):
             for j, matched_group in enumerate(match.groups()):
                 if rules[rule][:1] == "\\":
                     new_line = new_line.replace(str(j), matched_group)
-                elif rules[rule] == "ul":
+                elif rules[rule] in ("ul", "ol"):
+                    list_type = "itemize" if rules[rule] == "ul" else "enumerate"
                     if re.match(rule, data[i - 1]):
                         new_line = "\\item " + matched_group
-                        if not re.match(rule, data[i + 1]):
-                            new_line += " \\end{itemize}"
+                        if i + 1 == len(data) or not re.match(rule, data[i + 1]):
+                            new_line += " \\end{" + list_type + "}"
                     else:
-                        new_line = "\\begin{itemize} \\item " + matched_group
+                        new_line = "\\begin{" + list_type + "} \\item " + matched_group
     if line[-2:] == "  ":
         new_line += "\\\\"
     latex.append(new_line)
