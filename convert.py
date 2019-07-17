@@ -22,7 +22,8 @@ rules = {
     r"\~\~(.*?)\~\~": "\\sout{0}",  # Strikethrough
     r"\* (.*)": "ul",  # Unordered list
     r"[0-9]+\. (.*)": "ol",  # Ordered list
-    r"```(.*)": "code"  # Coding
+    r"```(.*)": "code",  # Coding
+    r"\|(.*)\|": "table",  # Table
 }
 
 for i, line in enumerate(data):
@@ -31,7 +32,6 @@ for i, line in enumerate(data):
     for rule in rules:
         match = re.match(rule, new_line)
         if match:
-            print(match.groups())
             matched = True
             new_line = rules[rule]
             for j, matched_group in enumerate(match.groups()):
@@ -48,11 +48,31 @@ for i, line in enumerate(data):
                 elif rules[rule] == "code":
                     found = i
                     while True:
-                        found = found + 1
+                        found = found + 1 if found > len(data) else i
                         if "```" in data[found]:
                             break
                     new_line = "\\begin{lstlisting}[language=" + matched_group + "]\n" + "\n".join(data[i + 1:found]) + "\\end{lstlisting}"
-                    data[i:found + 1] = ""
+                elif rules[rule] == "table":
+                    found = i
+                    table = [matched_group.split("|")]
+                    while True:
+                        found = found + 1
+                        if re.match(rule, data[found]):
+                            table.append((re.match(rule, data[found]).groups()[0]).split("|"))
+                            data[found] = ""
+                        else:
+                            data[i] = ""
+                            break
+                    new_line = "\\begin{table}[] \\begin{tabular}{" + ("c" * len(table[0])) + "} "
+                    for k, row in enumerate(table):
+                        for l, element in enumerate(row):
+                            new_line += element
+                            if l + 1 != len(row):
+                                new_line += "&"
+                        if k + 1 != len(table):
+                            new_line += "\\\\ \n"
+                    new_line += "\\end{tabular} \\end{table}"
+                    # print(table)
     if line[-2:] == "  ":
         new_line += "\\\\"
     latex.append(new_line)
